@@ -87,6 +87,18 @@ func QrCode(common *Common, uuid string) ([]byte, error) {
 	return body, nil
 }
 
+// webwxpushloginurl: 直接弹出登陆框免扫描 https://github.com/Urinx/WeixinBot
+func SkipQrCode(common *Common, uin string) ([]byte, error) {
+	uri := common.CgiUrl + "https://wx.qq.com/cgi-bin/mmwebwx-bin/webwxpushloginurl?uin=" + uin
+	resp, err := http.Get(uri)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	body, _ := ioutil.ReadAll(resp.Body)
+	return body, nil
+}
+
 // Login: login api
 func Login(common *Common, uuid, tip string) (string, error) {
 	km := url.Values{}

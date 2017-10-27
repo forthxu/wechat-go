@@ -301,12 +301,18 @@ loop1:
 				if err != nil {
 					logs.Error(err)
 				}
-			} else if sel != 0 && sel != 7 && sel !=4 {//0 正常 7 进入/离开聊天界面 4 点击保存群聊到通讯录或者改群聊名字
+			} else if sel != 0 && sel != 7 && sel !=4  && sel !=6 {//0 正常 7 进入/离开聊天界面,在手机上操作了微信 4 点击保存群聊到通讯录或者改群聊名字 6 可能是红包
 				errChan <- fmt.Errorf("session down, sel %d", sel)
 				break loop1
 			}
-		} else if ret == 1101 {//1100 失败/登出微信
+		} else if ret == 1100 {//1100 从微信客户端上登出
 			errChan <- nil
+			break loop1
+		}  else if ret == 1101 {//1100 失败/登出微信 从其它设备上登了网页微信
+			errChan <- nil
+			break loop1
+		} else if ret == 1102 {//1102 地址更换 https://github.com/liuwons/wxBot/commit/a2ea5db4c9f8e63b8d21b0f827c858fb82c34a72#diff-662f670033e1b42f8ad86352da3d46bd
+			errChan <- fmt.Errorf("api url change, ret:%d", 1102)
 			break loop1
 		} else if ret == 1205 {
 			errChan <- fmt.Errorf("api blocked, ret:%d", 1205)
@@ -352,7 +358,7 @@ func (s *Session) analize(msg map[string]interface{}) *ReceivedMessage {
 		Url:           msg["Url"].(string),
 	}
 
-	// friend verify message
+	// friend verify message 好友验证消息
 	if rmsg.MsgType == MSG_FV {
 		riif := msg["RecommendInfo"].(map[string]interface{})
 		rmsg.RecommendInfo = &RecommendInfo{
@@ -364,6 +370,7 @@ func (s *Session) analize(msg map[string]interface{}) *ReceivedMessage {
 		}
 	}
 
+	// 群消息
 	if strings.Contains(rmsg.FromUserName, "@@") ||
 		strings.Contains(rmsg.ToUserName, "@@") {
 		rmsg.IsGroup = true
@@ -382,6 +389,7 @@ func (s *Session) analize(msg map[string]interface{}) *ReceivedMessage {
 		rmsg.Content = rmsg.OriginContent
 	}
 
+	//个人消息
 	if rmsg.MsgType == MSG_TEXT &&
 		len(rmsg.Content) > 1 &&
 		strings.HasPrefix(rmsg.Content, "@") {
