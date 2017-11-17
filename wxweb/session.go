@@ -288,8 +288,8 @@ func (s *Session) producer(msg chan []byte, errChan chan error) {
 loop1:
 	for {
 		ret, sel, err := SyncCheck(s.WxWebCommon, s.WxWebXcg, s.Cookies, s.WxWebCommon.SyncSrv, s.SynKeyList)
-		logs.Info(s.WxWebCommon.SyncSrv, ret, sel)//检查状态返回的值
 		if err != nil {
+			logs.Info(s.WxWebCommon.SyncSrv, ret, sel)//检查状态返回的值
 			logs.Error(err)
 			continue
 		}
@@ -306,18 +306,23 @@ loop1:
 				break loop1
 			}
 		} else if ret == 1100 {//1100 从微信客户端上登出
+			logs.Info(s.WxWebCommon.SyncSrv, ret, sel)//检查状态返回的值
 			errChan <- nil
 			break loop1
 		}  else if ret == 1101 {//1100 失败/登出微信 从其它设备上登了网页微信
+			logs.Info(s.WxWebCommon.SyncSrv, ret, sel)//检查状态返回的值
 			errChan <- nil
 			break loop1
 		} else if ret == 1102 {//1102 地址更换 https://github.com/liuwons/wxBot/commit/a2ea5db4c9f8e63b8d21b0f827c858fb82c34a72#diff-662f670033e1b42f8ad86352da3d46bd
+			logs.Info(s.WxWebCommon.SyncSrv, ret, sel)//检查状态返回的值
 			errChan <- fmt.Errorf("api url change, ret:%d", 1102)
 			break loop1
 		} else if ret == 1205 {
+			logs.Info(s.WxWebCommon.SyncSrv, ret, sel)//检查状态返回的值
 			errChan <- fmt.Errorf("api blocked, ret:%d", 1205)
 			break loop1
 		} else {
+			logs.Info(s.WxWebCommon.SyncSrv, ret, sel)//检查状态返回的值
 			errChan <- fmt.Errorf("unhandled exception ret %d", ret)
 			break loop1
 		}
