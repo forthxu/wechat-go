@@ -283,6 +283,24 @@ func (s *Session) serve() error {
 		}
 	}
 }
+
+func (s *Session) check1102() bool{
+	for _, urlGroup := range URLPool {
+		SyncSrv := urlGroup.SyncUrl
+		ret, sel, err := SyncCheck(s.WxWebCommon, s.WxWebXcg, s.Cookies, SyncSrv, s.SynKeyList)
+		if err == nil && ret == 0 {
+			logs.Info("change to new urlGroup:", SyncSrv, ret, sel, err)//检查状态返回的值
+
+			UploadUrl := fmt.Sprintf("https://%s/cgi-bin/mmwebwx-bin/webwxuploadmedia?f=json", urlGroup.UploadUrl)
+
+			s.WxWebCommon.SyncSrv = SyncSrv
+			s.WxWebCommon.UploadUrl = UploadUrl
+			return true
+		}
+	}
+	return false
+}
+
 func (s *Session) producer(msg chan []byte, errChan chan error) {
 	logs.Info("entering synccheck loop")
 loop1:
@@ -293,6 +311,7 @@ loop1:
 			logs.Error(err)
 			continue
 		}
+		
 		if ret == 0 {//0 正常
 			// check success
 			if sel == 2 {//2 新的消息
@@ -316,7 +335,10 @@ loop1:
 		} else if ret == 1102 {//1102 地址更换 https://github.com/liuwons/wxBot/commit/a2ea5db4c9f8e63b8d21b0f827c858fb82c34a72#diff-662f670033e1b42f8ad86352da3d46bd
 			logs.Info(s.WxWebCommon.SyncSrv, ret, sel)//检查状态返回的值
 			errChan <- fmt.Errorf("api url change, ret:%d", 1102)
-			break loop1
+			changeResult := s.check1102()
+			if changeResult==false{
+				break loop1
+			}
 		} else if ret == 1205 {
 			logs.Info(s.WxWebCommon.SyncSrv, ret, sel)//检查状态返回的值
 			errChan <- fmt.Errorf("api blocked, ret:%d", 1205)
