@@ -59,6 +59,7 @@ var (
 		MediaCount: 0,
 	}
 	URLPool = []UrlGroup{
+		{"weixin.qq.com", "file.wx.qq.com", "webpush.weixin.qq.com"},
 		{"wx2.qq.com", "file.wx2.qq.com", "webpush.wx2.qq.com"},
 		{"wx8.qq.com", "file.wx8.qq.com", "webpush.wx8.qq.com"},
 		{"qq.com", "file.wx.qq.com", "webpush.wx.qq.com"},
@@ -288,9 +289,8 @@ func (s *Session) check1102() bool{
 	for _, urlGroup := range URLPool {
 		SyncSrv := urlGroup.SyncUrl
 		ret, sel, err := SyncCheck(s.WxWebCommon, s.WxWebXcg, s.Cookies, SyncSrv, s.SynKeyList)
+		logs.Info("change to new urlGroup:", SyncSrv, ret, sel, err)//检查状态返回的值
 		if err == nil && ret == 0 {
-			logs.Info("change to new urlGroup:", SyncSrv, ret, sel, err)//检查状态返回的值
-
 			UploadUrl := fmt.Sprintf("https://%s/cgi-bin/mmwebwx-bin/webwxuploadmedia?f=json", urlGroup.UploadUrl)
 
 			s.WxWebCommon.SyncSrv = SyncSrv
