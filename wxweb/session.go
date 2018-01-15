@@ -216,6 +216,7 @@ func (s *Session) LoginAndServe(useCache bool) error {
 			// confirmWaiter
 		}
 
+		//检查二维码扫描情况
 		if err := s.scanWaiter(); err != nil {
 			return err
 		}
@@ -298,6 +299,12 @@ func (s *Session) check1102() bool{
 			return true
 		}
 	}
+	return false
+}
+
+func (s *Session) CheckReqUrl(reqUrl string) bool{
+	main_type, evil_type, err := WebWxCheckurl(s.WxWebCommon, s.WxWebXcg, s.Cookies, s.WxWebCommon.SyncSrv, s.SynKeyList, reqUrl)
+	logs.Info("CheckReqUrl:", main_type, evil_type, err, reqUrl)//检查状态返回的值
 	return false
 }
 
@@ -426,6 +433,7 @@ func (s *Session) analize(msg map[string]interface{}) *ReceivedMessage {
 			rmsg.At = ss[0] + "\u2005"
 			rmsg.Content = ss[1]
 		}
+
 	}
 	return rmsg
 }

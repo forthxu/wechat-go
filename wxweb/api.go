@@ -41,6 +41,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"time"
+	"errors"
 
 	"github.com/songtianyi/rrframework/config"
 )
@@ -180,9 +181,81 @@ func WebWxInit(common *Common, ce *XmlConfig) ([]byte, error) {
 	return body, nil
 }
 
+/*
+https://wx2.qq.com/cgi-bin/mmwebwx-bin/webwxcheckurl?
+requrl=http%3A%2F%2Fpornhub.com
+&skey=%40crypt_2bccf68f_06e13c06c7a278a9f5905f1f8e9dbdf7
+&deviceid=e583418043761385
+&pass_ticket=undefined
+&opcode=2
+&scene=1
+&username=@1d84692257e87a924b54dba3f1c6fdc2
+*/
+func WebWxCheckurl(common *Common, ce *XmlConfig, cookies []*http.Cookie, server string, skl *SyncKeyList, reqUrl string) (int, int, error) {
+	km := url.Values{}
+	km.Add("requrl", reqUrl)
+	km.Add("skey", ce.Skey)
+	km.Add("deviceid", common.DeviceID)
+	km.Add("pass_ticket", ce.PassTicket)
+	km.Add("opcode", "2")
+	km.Add("scene", "1")
+	km.Add("username", ce.Wxuin)
+	uri := "https://" + server + "/cgi-bin/mmwebwx-bin/webwxcheckurl?" + km.Encode()
+
+	js := InitReqBody{
+		BaseRequest: &BaseRequest{
+			ce.Wxuin,
+			ce.Wxsid,
+			ce.Skey,
+			common.DeviceID,
+		},
+	}
+
+	b, _ := json.Marshal(js)
+	jar, _ := cookiejar.New(nil)
+	u, _ := url.Parse(uri)
+	jar.SetCookies(u, cookies)
+
+	client := &http.Client{
+		Jar: jar,
+		Timeout: time.Duration(30) * time.Second,
+	  	CheckRedirect: func(req *http.Request, via []*http.Request) error {
+	    	return http.ErrUseLastResponse
+		},
+	}
+
+	req, err := http.NewRequest("GET", uri, bytes.NewReader(b))
+	if err != nil {
+		return 0, 0, err
+	}
+	req.Header.Add("User-Agent", common.UserAgent)
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return 0, 0, err
+	}
+
+	if resp.StatusCode == 301 {
+	  	uri = resp.Header.Get("Location")
+
+	  	//https://weixin110.qq.com/cgi-bin/mmspamsupport-bin/newredirectconfirmcgi?main_type=2&evil_type=25&source=2&url=http%3A%2F%2Fpornhub.com&exportkey=Ay1iOvAzwJwrZ0n8HNnpAaw%3D&pass_ticket=Aau08D486GCLLxt9ilHuk96zktu1RIUnct2bIPtpzwlxw1AfocjXbfkFsTRy%2FG1E&wechat_real_lang=zh_CN
+		reg := regexp.MustCompile(".*main_type=(\\d+)&evil_type=(\\d+).*")
+		sub := reg.FindStringSubmatch(uri)
+		if len(sub)==3 {
+			main_type, _ := strconv.Atoi(sub[1])
+			evil_type, _ := strconv.Atoi(sub[2])
+			return main_type, evil_type, nil
+		}else{
+			return 0, 0, nil
+		}
+	}
+
+	return 0, 0, errors.New("fail get 301"+uri)
+}
+
+
 // SyncCheck: synccheck api
-func SyncCheck(common *Common, ce *XmlConfig, cookies []*http.Cookie,
-	server string, skl *SyncKeyList) (int, int, error) {
+func SyncCheck(common *Common, ce *XmlConfig, cookies []*http.Cookie, server string, skl *SyncKeyList) (int, int, error) {
 	km := url.Values{}
 	km.Add("r", strconv.FormatInt(time.Now().Unix()*1000, 10))
 	km.Add("sid", ce.Wxsid)
